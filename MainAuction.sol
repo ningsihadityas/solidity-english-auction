@@ -6,10 +6,12 @@ pragma solidity >=0.7.0 <0.9.0;
 import "./Bidding.sol";
 
 
+
 contract MainAuction{
     uint public auctionCount = 0;
-    address assetOwner;
+    address payable assetOwner;
     uint assetId;
+ 
     // enum State {NotStarted, Running, Ended}
 
     struct Auction {
@@ -18,7 +20,9 @@ contract MainAuction{
         string assetDetail;
         uint startPrice;
         address assetOwner;
-        address bidding;
+        uint ownerDeposit;
+        uint auctionDuration;
+
         // bool purchased;
         // uint256 auctionDuration;
         // uint256 startPrice;
@@ -39,19 +43,18 @@ contract MainAuction{
         string assetName,
         string assetDetail,
         uint startPrice,
-        address assetOwner
-        // string biddingList
-      //  address bidding
-       
+        address assetOwner,
+        uint ownerDeposit,
+        uint auctionDuration 
     );
 
-
+    
     //Array Mapping
         // stored all Auction data in arrray
         // Auction[] public auctions;
 
         Bidding[] public biddingList;
-        address bidding;
+        // address bidding;
 
 
         // auctionOwned[] public auctionOwner;
@@ -60,26 +63,35 @@ contract MainAuction{
         // // Mapping from owner to a list of owned auctions
         // mapping(address => uint[]) public auctionOwner;
 
-        // auctionOwner[]
-// auctionCount--;
-     function createAuction( string memory _assetName, string memory _assetDetail, uint _startPrice) public {
+    
+
+     function createAuction( string memory _assetName, string memory _assetDetail, uint _startPrice, uint _auctionDuration) public payable {
        
         
        // auctions[auctionCount] = Auction(auctionCount, _assetName, _assetDetail, _startPrice, msg.sender);
         
-
-        Bidding bidding = new Bidding( auctionCount, _assetName, _assetDetail, _startPrice, msg.sender);
-    
+        require(msg.value == _startPrice, 'deposite must be same as start price');
+        //create new contract
+        Bidding bidding = (new Bidding){value: msg.value}(auctionCount, _assetName, _assetDetail, _startPrice, msg.sender, msg.value, (block.timestamp + (_auctionDuration*60)));
+        // saving address of new contract to bidding array
         biddingList.push(bidding); 
-       
-        auctions[auctionCount] = Auction(auctionCount, _assetName, _assetDetail, _startPrice, msg.sender, bidding);      
+
         
-        emit AuctionCreated(auctionCount, _assetName, _assetDetail, _startPrice, msg.sender);
-        auctionCount ++;
-     
-        // auctionOwner[assetOwner] =+ assetId;
-    
-       
+
+        //stored value to auctions struct
+        auctions[auctionCount] = Auction(auctionCount, _assetName, _assetDetail, _startPrice, msg.sender, msg.value, (block.timestamp + (_auctionDuration*60)));     
+        // *60 because block.timestamp are on seconds 
+        
+        //calling auction created event 
+        emit AuctionCreated(auctionCount, _assetName, _assetDetail, _startPrice, msg.sender, msg.value, (block.timestamp + (_auctionDuration*60)));
+        
+        
+        //increment id
+        auctionCount ++;  
+    }
+
+    function returnAllAuctions() public view returns(Bidding[] memory){
+        return biddingList;
     }
 
    

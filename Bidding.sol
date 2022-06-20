@@ -1,16 +1,19 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 
-contract Bidding {
+contract Bidding  {
 
    // variable decralred
-    address public assetOwner; 
+    address payable public assetOwner; 
     string public assetName;
     string public assetDetail;
     bool public isActive;
+    uint auctionId;
+ 
 
-    // enum State {NotStarted, Running, Ended}
-    // State public auctionState;
+    enum State{NotStarted, Running, Ended}
+    State public auctionState;
+
     uint startPrice;
 
     uint auctionDuration;
@@ -28,7 +31,7 @@ contract Bidding {
 
     //onlyowner modifier
     modifier onlyOwner(){
-        require(msg.sender == assetOwner);
+        require(msg.sender == payable(assetOwner));
         _;
     }
 
@@ -38,23 +41,26 @@ contract Bidding {
         _;
     }
 
+    event Received(address, uint);
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+
      //there are 2 types of address: 1. eoa address 2.contract adress
-    constructor(uint auctionId, string memory _assetName, string memory _assetDetail, uint _startPrice, address _assetOwner) {
+    constructor(uint _auctionId, string memory _assetName, string memory _assetDetail, uint _startPrice, address _assetOwner, uint _ownerDeposite, uint _auctionDuration) public payable {
+        auctionId = _auctionId;
         assetName = _assetName;
         assetDetail = _assetDetail;
         startPrice = _startPrice;
-        assetOwner = _assetOwner;
+        assetOwner = payable(_assetOwner);
+        auctionState = State.Running;
+        ownerDeposit = _ownerDeposite;
+        auctionDuration = _auctionDuration;
+        auctionState = State.Running;
+   
         // isActive = _isActive;
     }
-
-    function StartAuction(uint _biddingTime) payable public onlyOwner {
-        require(msg.value != 0);
-        // auctionState = State.Running;
-        isActive = true;
-        auctionDuration = block.timestamp + (_biddingTime*60);
-        ownerDeposit = msg.value;
-    }
-
 
 
     function bid() public payable{
@@ -92,6 +98,12 @@ contract Bidding {
         return address(this).balance;
     }
 
+     function getOwnerDeposite() public view returns(uint){
+        return ownerDeposit;
+    }
+
+   
+
     function withdraw() public returns(bool){
         uint amount = pendingReturns[msg.sender];
 
@@ -103,7 +115,7 @@ contract Bidding {
             pendingReturns[msg.sender] = 0;
 
             //if fail to sending money back
-            if(!(msg.sender).send(amount)){
+            if(!payable((msg.sender)).send(amount)){
                 pendingReturns[msg.sender] = amount; //the money will back to the amount container
                 return false;
             }
@@ -118,22 +130,35 @@ contract Bidding {
             revert ("The auction is not ended yet");
         }
        
-        // // make sure the status of the auction
-        // if (auctionState == State.Ended){
-        //     revert("The function auctionEnded has already been called");
-        // }
+        // make sure the status of the auction
+        if (auctionState == State.Ended){
+            revert("The function auctionEnded has already been called");
+        }
 
-        // auctionState = State.Ended;
+        auctionState = State.Ended;
 
-        isActive = false;
-
+        // isActive = false;
 
         emit AuctionEnded(highestBidder, highestBid);
 
-        assetOwner.transfer(startPrice);
-        assetOwner.transfer(highestBid);
+        payable(assetOwner).transfer(ownerDeposit);
+        payable(assetOwner).transfer(highestBid);
         // transfer is more safe then send, send will return false when it fails, while transfer didnt
 
+    }
+
+     function returnContents() public view returns(        
+        string memory,
+        uint,
+        string memory,
+        State
+        ) {
+        return (
+            assetName,
+            startPrice,
+            assetDetail,
+            auctionState
+        );
     }
 
     // event BidSuccess(address _bidder, uint _auctionId);
