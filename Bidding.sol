@@ -7,17 +7,15 @@ contract Bidding  {
     address payable public assetOwner; 
     string public assetName;
     string public assetDetail;
-    bool public isActive;
     uint auctionId;
  
-
     enum State{NotStarted, Running, Ended}
     State public auctionState;
 
     uint startPrice;
 
     uint auctionDuration;
-    uint ownerDeposit;
+
 
     address public highestBidder;
     uint public highestBid;
@@ -48,14 +46,13 @@ contract Bidding  {
     }
 
      //there are 2 types of address: 1. eoa address 2.contract adress
-    constructor(uint _auctionId, string memory _assetName, string memory _assetDetail, uint _startPrice, address _assetOwner, uint _ownerDeposite, uint _auctionDuration) public payable {
+    constructor(uint _auctionId, string memory _assetName, string memory _assetDetail, uint _startPrice, address _assetOwner, uint _auctionDuration) payable{
         auctionId = _auctionId;
         assetName = _assetName;
         assetDetail = _assetDetail;
         startPrice = _startPrice;
         assetOwner = payable(_assetOwner);
         auctionState = State.Running;
-        ownerDeposit = _ownerDeposite;
         auctionDuration = _auctionDuration;
         auctionState = State.Running;
    
@@ -99,7 +96,7 @@ contract Bidding  {
     }
 
      function getOwnerDeposite() public view returns(uint){
-        return ownerDeposit;
+        return startPrice;
     }
 
    
@@ -141,7 +138,7 @@ contract Bidding  {
 
         emit AuctionEnded(highestBidder, highestBid);
 
-        payable(assetOwner).transfer(ownerDeposit);
+        payable(assetOwner).transfer(startPrice);
         payable(assetOwner).transfer(highestBid);
         // transfer is more safe then send, send will return false when it fails, while transfer didnt
 
@@ -175,5 +172,6 @@ contract Bidding  {
 
     
 }
+
 
 
