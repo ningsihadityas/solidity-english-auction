@@ -8,7 +8,9 @@ contract Bidding  {
     string public assetName;
     string public assetDetail;
     uint auctionId;
+    string shippingDetail;
  
+
     enum State{NotStarted, Running, Ended}
     State public auctionState;
 
@@ -26,18 +28,6 @@ contract Bidding  {
     // event trigger
     event HighestBidIncrease(address bidder, uint amount);
     event AuctionEnded(address winner, uint amount);
-
-    //onlyowner modifier
-    modifier onlyOwner(){
-        require(msg.sender == payable(assetOwner));
-        _;
-    }
-
-    //onlyWinner modifier
-    modifier onlyWinner(){
-        require(msg.sender == highestBidder);
-        _;
-    }
 
     event Received(address, uint);
 
@@ -121,16 +111,46 @@ contract Bidding  {
 
     }
 
-    function auctionEnd() public onlyWinner{
+    // stored shipping detail
+    function submitShippingDetail(string memory _shippingDetail) public  {
+         // check if the auction has ended
+        if (block.timestamp < auctionDuration){
+            revert ("The auction is not ended yet");
+        }
+
+        if (msg.sender != highestBidder){
+            revert("you are not the winner of this auction");
+        }
+
+        shippingDetail = _shippingDetail;
+    }
+
+    // return value of shipping detail
+    function getShippingDetail() public view returns (string memory){
+
+         if (msg.sender != assetOwner){
+            revert("you are not the asset owner of this auction");
+        }
+
+        return shippingDetail;
+    }
+
+    function auctionEnd() public {
         // check if the auction has ended
         if (block.timestamp < auctionDuration){
             revert ("The auction is not ended yet");
+        }
+
+         if (msg.sender != highestBidder){
+            revert("you are not the winner of this auction");
         }
        
         // make sure the status of the auction
         if (auctionState == State.Ended){
             revert("The function auctionEnded has already been called");
         }
+
+        
 
         auctionState = State.Ended;
 
@@ -144,19 +164,6 @@ contract Bidding  {
 
     }
 
-     function returnContents() public view returns(        
-        string memory,
-        uint,
-        string memory,
-        State
-        ) {
-        return (
-            assetName,
-            startPrice,
-            assetDetail,
-            auctionState
-        );
-    }
 
     // event BidSuccess(address _bidder, uint _auctionId);
 
@@ -172,6 +179,5 @@ contract Bidding  {
 
     
 }
-
 
 
