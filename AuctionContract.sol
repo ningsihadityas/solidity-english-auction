@@ -1,6 +1,8 @@
 // SPDX-License-Identifier
 
-pragma solidity ^0.4.17;
+pragma solidity >=0.7.0 <0.9.0;
+
+
 
 contract AuctionContract {
     
@@ -38,37 +40,37 @@ contract AuctionContract {
     }
 
 
-    function getCount() public constant returns(uint) {
+    function getCount() public returns(uint) {
         return auctions.length;
     }
 
 
-    function getBidsCount(uint _auctionId) public constant returns(uint) {
+    function getBidsCount(uint _auctionId) public returns(uint) {
         return auctionBids[_auctionId].length;
     }
 
-    function getAuctionsOf(address _assetOwner) public constant returns(uint[]) {
+    function getAuctionsOf(address _assetOwner) public returns(uint[] memory) {
         uint[] memory ownedAuctions = auctionOwner[_assetOwner];
         return ownedAuctions;
     }
 
-    function getCurrentBid(uint _auctionId) public constant returns(uint256, address) {
+    function getCurrentBid(uint _auctionId) public returns(uint256, address) {
         uint bidsLength = auctionBids[_auctionId].length;
         // if there are bids refund the last bid
         if( bidsLength > 0 ) {
             Bid memory auctionWinner = auctionBids[_auctionId][bidsLength - 1];
             return (auctionWinner.amount, auctionWinner.bidder);
         }
-        return (0, 0);
+        return (0, 0x0000000000000000000000000000000000000000);
     }
 
-    function getAuctionsCountOfOwner(address _assetOwner) public constant returns(uint) {
+    function getAuctionsCountOfOwner(address _assetOwner) public  returns(uint) {
         return auctionOwner[_assetOwner].length;
     }
 
-    function getAuctionById(uint _auctionId) public constant returns(
-        string assetName,
-        string assetDescription,
+    function getAuctionById(uint _auctionId) public returns(
+        string memory assetName,
+        string memory assetDescription,
         uint256 auctionDuration,
         uint256 startPrice,
         address assetOwner,
@@ -85,7 +87,7 @@ contract AuctionContract {
     }
     
    
-    function createAuction( string _assetName, string _assetDescription, uint _auctionDuration) public payable {
+    function createAuction( string memory _assetName, string memory _assetDescription, uint _auctionDuration) public payable {
         uint auctionId = auctions.length;
         Auction memory newAuction;
         newAuction.assetName = _assetName;
@@ -121,7 +123,7 @@ contract AuctionContract {
         }
 
         // make sure the status of the auction
-         if(msg.sender!= auctionWinner.bidder){
+         if(msg.sender != auctionWinner.bidder){
             revert("you are not the winner of this auction");
         }
 
@@ -133,8 +135,8 @@ contract AuctionContract {
         emit AuctionEndedWithWinner(_auctionId, auctionWinner.bidder, auctionWinner.amount);
 
         //send money to the asset owner
-        (a.assetOwner).transfer(auctionWinner.amount);
-        (a.assetOwner).transfer(a.startPrice);
+        payable(a.assetOwner).transfer(auctionWinner.amount);
+        payable(a.assetOwner).transfer(a.startPrice);
            
         
 
@@ -198,7 +200,7 @@ contract AuctionContract {
             pendingReturns[msg.sender] = 0;
 
             //if fail to sending money back
-            if(!(msg.sender).send(amount)){
+            if(!payable(msg.sender).send(amount)){
                 pendingReturns[msg.sender] = amount; //the money will back to the amount container
                 return false;
             }
